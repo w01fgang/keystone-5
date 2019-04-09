@@ -1,6 +1,8 @@
+import getByPath from 'lodash.get';
 import { MongoTextInterface, KnexTextInterface, Text } from '../Text/Implementation';
 import { flatMap, unique } from '@keystone-alpha/utils';
 import paragraph from './blocks/paragraph';
+import { walkSlateDocument } from './slate-walker';
 
 const GQL_TYPE_PREFIX = '_ContentType';
 
@@ -11,6 +13,96 @@ function flattenBlockViews(block) {
     block.viewPath,
     ...(block.dependencies ? flatMap(block.dependencies, flattenBlockViews) : []),
   ];
+}
+
+function isKnownBlock(node, blocks) {
+  return true; // TODO;
+}
+
+/**
+ * @param data Object For example:
+ * {
+ *   document: [
+ *     { object: 'block', type: 'cloudinaryImage', data: { _mutationPath: 'cloudinaryImages.create[0]' },
+ *     { object: 'block', type: 'cloudinaryImage', data: { _mutationPath: 'cloudinaryImages.create[1]' },
+ *     { object: 'block', type: 'relationshipUser', data: { _mutationPath: 'relationshipUsers.create[0]' } }
+ *     { object: 'block', type: 'relationshipUser', data: { _mutationPath: 'relationshipUsers.connect[0]' } }
+ *   ],
+ *   cloudinaryImages: {
+ *     create: [
+ *       { data: { image: <FileObject>, align: 'center' } },
+ *       { data: { image: <FileObject>, align: 'center' } }
+ *     ]
+ *   },
+ *   relationshipUsers: {
+ *     create: [{ data: { id: 'abc123' } }],
+ *     connect: [{ id: 'xyz789' }],
+ *   },
+ * }
+ */
+async function processSerialised({ document, ...nestedMutations }, { blocks }) {
+
+  // TODO
+  // 1. Resolve all the `nestedMutations` mutations
+  const resolvedMutations = await TODO(nestedMutations);
+
+  return {
+    document: walkSlateDocument(
+      document,
+      {
+        visitBlock(node) {
+          // All our blocks need data, so we can early-out for any that don't have
+          // data set.
+          if (!node.data || !isKnownBlock(node, blocks)) {
+            return node;
+          }
+
+          return {
+            ...node,
+            data: {
+              _joinId: getByPath(resolvedMutations, node.data._mutationPath).id,
+            },
+          };
+        },
+      },
+    ),
+  };
+
+}
+
+/**
+ * @param query Object For example:
+ * {
+ *   document,
+ *   cloudinaryImages {
+ *     id
+ *     publicUrl: publicUrlTransformed(transformation: { crop: 'fill', width: '200px' })
+ *   }
+ *   # _embed comes from the `relationship` block adding it to the graphql
+ *   # schema. Gives a way for that block to provide a different query for
+ *   # variations of a block (for example; the block might have
+ *   # { data: { style: 'embed' })
+ *   relationshipUsers_embed {
+ *     id
+ *     username
+ *     bio
+ *     avatar {
+ *       publicUrl: publicUrlTransformed(transformation: { crop: 'fill', width: '30px' })
+ *     }
+ *   }
+ *   relationshipUsers_mention {
+ *     id
+ *     username
+ *   }
+ * }
+ */
+function resolveDocumentAndSerialisations(id, query) {
+
+  // TODO: Default optional query parts
+  // if (!query.cloudinaryImages_fullWidth) {
+  //   query.cloudinaryImages_fullWidth = query.cloudinaryImages;
+  // }
+
 }
 
 export class Content extends Text {
@@ -198,7 +290,8 @@ export class Content extends Text {
   }
 
   async resolveInput({ resolvedData }) {
-    return resolvedData[this.path].document;
+    //return resolvedData[this.path].document;
+    return processSerialised(resolvedData[this.path]);
   }
 }
 

@@ -4,6 +4,7 @@
 // should import from '@keystone-alpha/fields/types/Text/views/Controller'
 import memoizeOne from 'memoize-one';
 import TextController from '../../Text/views/Controller';
+import { serialiseSlateDocument, buildMutationFromSerialisation } from './serialiser';
 
 const flattenBlocks = inputBlocks =>
   inputBlocks.reduce((outputBlocks, block) => {
@@ -60,7 +61,13 @@ export default class ContentController extends TextController {
       // Forcibly return null if empty string
       return { document: null };
     }
-    return { document: data[path].document };
+
+    const serialisedDocument = serialiseSlateDocument(
+      data[path].document,
+      this.getBlocks().filter(({ isComplexData }) => isComplexData)
+    );
+
+    return buildMutationFromSerialisation(serialisedDocument);
   };
 
   deserialize = data => (data[this.config.path] ? data[this.config.path] : { document: {} });
