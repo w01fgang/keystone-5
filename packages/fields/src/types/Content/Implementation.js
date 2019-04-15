@@ -1,11 +1,12 @@
 import getByPath from 'lodash.get';
 import { MongoTextInterface, KnexTextInterface, Text } from '../Text/Implementation';
-import { flatMap, unique } from '@keystone-alpha/utils';
+import { flatMap, unique, resolveAllKeys, mapKeys } from '@keystone-alpha/utils';
 import paragraph from './blocks/paragraph';
 import { walkSlateDocument } from './slate-walker';
 
 const GQL_TYPE_PREFIX = '_ContentType';
 
+const GQL_TYPE_PREFIX = '_ContentType';
 const DEFAULT_BLOCKS = [paragraph];
 
 function flattenBlockViews(block) {
@@ -40,28 +41,53 @@ function isKnownBlock(node, blocks) {
  *   },
  * }
  */
-async function processSerialised({ document, ...nestedMutations }, { blocks }) {
+async function processSerialised({ document, ...nestedMutations }, blocks, graphQlArgs) {
+  // Each block executes its mutations
+  const resolvedMutations = await resolveAllKeys(
+    mapKeys(nestedMutations, (mutations, path) => {
+      const block = blocks.find(aBlock => aBlock.path === path);
 
-  // TODO
-  // 1. Resolve all the `nestedMutations` mutations
-  const resolvedMutations = await TODO(nestedMutations);
+      if (!block) {
+        throw new Error(`Unable to perform '${path}' mutations: No known block can handle this path.`);
+      }
+
+      debugger;
+      return block.processMutations(mutations, graphQlArgs);
+    })
+  );
 
   return {
     document: walkSlateDocument(
       document,
       {
         visitBlock(node) {
-          // All our blocks need data, so we can early-out for any that don't have
-          // data set.
-          if (!node.data || !isKnownBlock(node, blocks)) {
+          const block = blocks.find(({ type }) => type === node.type);
+
+          if (!block) {
+            if (node.data && node.data._mutationPath) {
+              throw new Error(`Received mutation for ${node.type}, but no block types can handle it.`);
+            }
+
+            // A regular slate.js node - pass it through
             return node;
           }
 
+          const _joinId = getByPath(resolvedMutations, node.data._mutationPath, {}).id;
+
+          if (!_joinId) {
+            throw new Error(`Slate document refers to unknown mutation '${node.data._mutationPath}'.`);
+          }
+
+          debugger;
+
           return {
-            ...node,
-            data: {
-              _joinId: getByPath(resolvedMutations, node.data._mutationPath).id,
+            node: {
+              ...node,
+              data: { _joinId },
             },
+            // We only process the outer most block, any child blocks are left
+            // as-is.
+            isFinal: true,
           };
         },
       },
@@ -152,27 +178,15 @@ export class Content extends Text {
     }
 
     this.complexBlocks = this.blocks
-      .map(blockConfig => {
-        let Impl = blockConfig;
-        let fieldConfig = {};
-
-        if (Array.isArray(blockConfig)) {
-          Impl = blockConfig[0];
-          fieldConfig = blockConfig[1];
-        }
-
-        if (!Impl.isComplexDataType) {
-          return null;
-        }
-
-        return new Impl(fieldConfig, {
-          fromList: this.listKey,
-          createAuxList: listConfig.createAuxList,
-          getListByKey: listConfig.getListByKey,
-          listConfig: this.listConfig,
-        });
-      })
-      .filter(block => block);
+      .map(block => Array.isArray(block) ? block : [block, {}])
+      .filter(([block]) => block.implementation)
+      .map(([block, blockConfig]) => new block.implementation(blockConfig, {
+        type: block.type,
+        fromList: this.listKey,
+        createAuxList: listConfig.createAuxList,
+        getListByKey: listConfig.getListByKey,
+        listConfig: this.listConfig,
+      }));
   }
 
   /*
@@ -289,9 +303,11 @@ export class Content extends Text {
     };
   }
 
-  async resolveInput({ resolvedData }) {
-    //return resolvedData[this.path].document;
-    return processSerialised(resolvedData[this.path]);
+  async resolveInput({ resolvedData, ...args }) {
+    debugger;
+    const { document } = await processSerialised(resolvedData[this.path], this.complexBlocks, args);
+    debugger;
+    return document;
   }
 }
 

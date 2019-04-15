@@ -28,9 +28,11 @@ let ContentField = ({ field, value: serverValue, onChange, autoFocus }) => {
   return (
     <FieldContainer
       onBlur={() => {
-        let stringified = JSON.stringify(value.toJS());
+        const jsValue = value.toJS();
+        // TODO: There's gotta be a better/faster way to check equality.
+        let stringified = JSON.stringify(jsValue);
         if (stringified !== serverValue.document) {
-          onChange({ document: stringified });
+          onChange({ document: jsValue });
         }
       }}
     >

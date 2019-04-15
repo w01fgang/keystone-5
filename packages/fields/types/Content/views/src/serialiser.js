@@ -37,13 +37,7 @@ const CONNECT = 'connect';
  * }
  */
 export function serialiseSlateDocument(document, blocks) {
-  // eg;
-  // {
-  //   cloudinaryImages: [],
-  //   relationshipUser: [],
-  //   ...
-  // }
-  const mutations = blocks.reduce(
+  const mutations = Object.values(blocks).reduce(
     (memo, block) => ({
       ...memo,
       [block.path]: {}
@@ -55,41 +49,50 @@ export function serialiseSlateDocument(document, blocks) {
     document,
     {
       visitBlock(node) {
-        // All our blocks need data, so we can early-out for any that don't have
-        // data set.
-        if (!node.data) {
-          return node;
-        }
-
-        const block = blocks.find(({ type }) => type === node.type);
+        const block = blocks[node.type];
 
         if (!block) {
           return node;
         }
 
-        let query;
+        let processedNode;
         let action;
 
         if (node.data._joinId) {
           // An existing connection
           action = CONNECT;
-          // TODO: Implement .buildConnectionQuery()'s
-          query = block.buildConnectionQuery({ id: node.data._joinId, data: node.data });
+          processedNode = block.processNodeForConnectQuery({ id: node.data._joinId, node });
         } else {
           // Create a new related complex data type
           action = CREATE;
-          // TODO: Implement .buildCreateQuery()'s
-          query = block.buildCreateQuery({ data: node.data });
+          processedNode = block.processNodeForCreateQuery({ node });
+        }
+
+        if (!processedNode.query) {
+          return {
+            node: processedNode.node,
+            isFinal: true,
+          };
         }
 
         mutations[block.path][action] = mutations[block.path][action] || [];
-        mutations[block.path][action].push(query);
+        mutations[block.path][action].push(processedNode.query);
+
+        const insertedAt = mutations[block.path][action].length - 1;
+
+        debugger;
 
         return {
-          ...node,
-          data: {
-            _mutationPath: `${block.path}.${action}[${mutations[block.path].length - 1}]`,
+          node: {
+            ...processedNode.node,
+            data: {
+              ...processedNode.node.data,
+              _mutationPath: `${block.path}.${action}[${insertedAt}]`,
+            },
           },
+          // In the future, we'll want to allow nested blocks to be handled too.
+          // For now, we just stop at the outter most block.
+          isFinal: true,
         };
       },
     },
@@ -97,13 +100,6 @@ export function serialiseSlateDocument(document, blocks) {
 
   return {
     document: mutatedDocument,
-    ...mutations,
-  };
-}
-
-export function buildMutationFromSerialisation({ document, ...mutations }) {
-  return {
-    document,
     ...mapKeys(mutations, ({ create, connect }) => ({
       // TODO: Don't forcible disconnect & reconnect. (It works because we know
       // the entire document, so all creations & connections exist below).
@@ -153,7 +149,7 @@ export function deserialiseSlateDocument({ document, ...serialisations }, blocks
           return node;
         }
 
-        const block = blocks.find(({ type }) => type === node.type);
+        const block = blocks[node.type]
 
         if (!block || !Array.isArray(serialisations[block.path])) {
           return node;

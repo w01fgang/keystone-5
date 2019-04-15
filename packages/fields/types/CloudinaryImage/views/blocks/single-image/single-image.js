@@ -1,14 +1,19 @@
 /** @jsx jsx */
 import { jsx } from '@emotion/core';
 import { useMemo } from 'react';
-import * as image from './image';
-import * as caption from './caption';
+import * as image from  '../../../../Content/views/src/editor/blocks/image';
+import * as caption from '../../../../Content/views/src/editor/blocks/caption';
 import insertImages from 'slate-drop-or-paste-images';
 import imageExtensions from 'image-extensions';
 import { findNode } from 'slate-react';
 import { Block } from 'slate';
+import pluralize from 'pluralize';
 
-export let type = 'image-container';
+export const type = 'cloudinaryImage';
+
+// TODO: Receive this value from the server somehow. 'pluralize' is a fairly
+// large lib.
+export const path = pluralize.plural(type);
 
 let getFiles = () =>
   new Promise(resolve => {
@@ -173,3 +178,40 @@ export let plugins = [
     },
   },
 ];
+
+export function processNodeForConnectQuery({ id, node }) {
+  debugger;
+  return { node };
+}
+
+export function processNodeForCreateQuery({ node }) {
+  debugger;
+  // Find the 'image' child node
+  const imageNodeIndex = node.nodes.findIndex(({ type }) => type === image.type);
+
+  if (imageNodeIndex === -1) {
+    console.error('No image found in a cloudinaryImage block');
+    return { node };
+  }
+
+  const { alignment } = node.data;
+  const { file } = node.nodes[imageNodeIndex].data;
+
+  const childNodes = [...node.nodes];
+  childNodes.splice(imageNodeIndex, 1, {
+    ...node.nodes[imageNodeIndex],
+    data: {},
+  });
+
+  return {
+    // Immutably return a modified version of the nested node
+    node: {
+      ...node,
+      nodes: childNodes,
+    },
+    query: {
+      image: file,
+      align: alignment,
+    },
+  };
+}

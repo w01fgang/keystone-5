@@ -1096,6 +1096,7 @@ module.exports = class List {
     // Perform the mutation
     const { result, afterHook } = await mutation(mutationState);
 
+    debugger;
     // resolve backlinks
     await Relationship.resolveBacklinks(context, mutationState);
 

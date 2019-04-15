@@ -3,8 +3,10 @@
 // how to traverse preconstruct's src pointers yet, when it does this
 // should import from '@keystone-alpha/fields/types/Text/views/Controller'
 import memoizeOne from 'memoize-one';
+import isPromise from 'p-is-promise';
+import { omitBy } from '@keystone-alpha/utils';
 import TextController from '../../Text/views/Controller';
-import { serialiseSlateDocument, buildMutationFromSerialisation } from './serialiser';
+import { serialiseSlateDocument } from './serialiser';
 
 const flattenBlocks = inputBlocks =>
   inputBlocks.reduce((outputBlocks, block) => {
@@ -53,21 +55,61 @@ export default class ContentController extends TextController {
 
       return flattenBlocks(customBlocks);
     });
+
+    this.getBlocksNoZalgo = memoizeOne(async () => {
+      // To support React Suspense, .getBlocks() might throw a promise.
+      // .getValue() should only be called during an event handler, not a render,
+      // so we need to catch the thrown promise and handle the async nature of it
+      // correctly.
+      // Ie; we're containing the Zalgo.
+      let blocks;
+      while(!blocks) {
+        try {
+          // May return synchronously, or may throw with either an actual error or
+          // a loading promise.
+          // For the returns-synchronously case, we want to ensure this function
+          // always returns a promise, so we add the `await` here. Otherwise,
+          // this function may unexpectedly return a value which isn't a Promise.
+          blocks = await this.getBlocks();
+        } catch (loadingPromiseOrError) {
+          if (!isPromise(loadingPromiseOrError)) {
+            // An actual error occured
+            throw loadingPromiseOrError;
+          }
+
+          // Wait for the loading promise to resolve
+          // The while-loop will take another turn, and we'll hopefully get a
+          // synchronous return value this time.
+          await loadingPromiseOrError;
+        }
+      }
+
+      return blocks;
+    });
   }
 
-  serialize = data => {
+  serialize = async data => {
     const { path } = this.config;
     if (!data[path] || !data[path].document) {
       // Forcibly return null if empty string
       return { document: null };
     }
 
+    const blocks = await this.getBlocksNoZalgo();
+
     const serialisedDocument = serialiseSlateDocument(
       data[path].document,
-      this.getBlocks().filter(({ isComplexData }) => isComplexData)
+      omitBy(blocks, type => !blocks[type].processNodeForConnectQuery || !blocks[type].processNodeForCreateQuery),
     );
 
-    return buildMutationFromSerialisation(serialisedDocument);
+    debugger;
+
+    // TODO: Make this a JSON type in GraphQL so we don't have to stringify it.
+    serialisedDocument.document = JSON.stringify(serialisedDocument.document);
+
+    debugger;
+
+    return serialisedDocument;
   };
 
   deserialize = data => (data[this.config.path] ? data[this.config.path] : { document: {} });

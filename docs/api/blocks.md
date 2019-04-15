@@ -107,7 +107,6 @@ export const schema = /* ... */;
 export const plugins = /* ... */;
 
 // (optional)
-// Serialise slate.js data into a format suitable for Keystone to understand.
-// TODO: Figure this out
-export const serialiser = /* ... */;
+// 
+export function processNodeForConnectQuery({ id, node }) { return { node, query } };
 ```
