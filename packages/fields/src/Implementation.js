@@ -20,7 +20,14 @@ class Field {
       this.constructor.name,
       path,
       getListByKey,
-      config
+      {
+        isRequired: config.isRequired,
+        isUnique: config.isUnique,
+        many: config.many,
+        ref: config.ref,
+        options: config.options,
+        mongooseOptions: config.mongooseOptions,
+      }
     );
 
     // Should be overwritten by types that implement a Relationship interface

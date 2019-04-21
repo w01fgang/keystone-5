@@ -46,7 +46,7 @@ export class MongoDecimalInterface extends MongooseFieldAdapter {
         message: '{VALUE} is not a Decimal value',
       },
     };
-    schema.add({ [this.path]: this.mergeSchemaOptions(schemaOptions, this.config) });
+    schema.add({ [this.path]: this.mergeSchemaOptions(schemaOptions) });
   }
 
   setupHooks({ addPreSaveHook, addPostReadHook }) {

@@ -49,7 +49,7 @@ const CommonTextInterface = superclass =>
 
 export class MongoTextInterface extends CommonTextInterface(MongooseFieldAdapter) {
   addToMongooseSchema(schema) {
-    schema.add({ [this.path]: this.mergeSchemaOptions({ type: String }, this.config) });
+    schema.add({ [this.path]: this.mergeSchemaOptions({ type: String }) });
   }
 }
 

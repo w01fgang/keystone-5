@@ -1,9 +1,9 @@
 const pWaterfall = require('p-waterfall');
 
 class BaseKeystoneAdapter {
-  constructor(config) {
-    this.config = { ...config };
-    this.name = this.config.name;
+  constructor({ name, listAdapterClass }) {
+    this.name = name;
+    this.listAdapterClass = listAdapterClass;
     this.listAdapters = {};
   }
 
@@ -51,12 +51,11 @@ class BaseKeystoneAdapter {
 }
 
 class BaseListAdapter {
-  constructor(key, parentAdapter, config) {
+  constructor(key, parentAdapter) {
     this.key = key;
     this.parentAdapter = parentAdapter;
     this.fieldAdapters = [];
     this.fieldAdaptersByPath = {};
-    this.config = config;
 
     this.preSaveHooks = [];
     this.postReadHooks = [
@@ -152,7 +151,6 @@ class BaseFieldAdapter {
     this.fieldName = fieldName;
     this.path = path;
     this.listAdapter = listAdapter;
-    this.config = config;
     this.getListByKey = getListByKey;
     this.dbPath = path;
     this.isRequired = isRequired;

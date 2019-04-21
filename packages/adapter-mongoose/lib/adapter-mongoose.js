@@ -75,12 +75,12 @@ class MongooseAdapter extends BaseKeystoneAdapter {
     super(...arguments);
 
     this.name = this.name || 'mongoose';
+    this.listAdapterClass = this.listAdapterClass || this.defaultListAdapterClass;
 
     this.mongoose = new mongoose.Mongoose();
     if (debugMongoose()) {
       this.mongoose.set('debug', true);
     }
-    this.listAdapterClass = this.listAdapterClass || this.defaultListAdapterClass;
   }
 
   async _connect(to, config = {}) {
@@ -141,10 +141,8 @@ const DEFAULT_MODEL_SCHEMA_OPTIONS = {
 };
 
 class MongooseListAdapter extends BaseListAdapter {
-  constructor(key, parentAdapter, config) {
+  constructor(key, parentAdapter, { configureMongooseSchema, mongooseSchemaOptions }) {
     super(...arguments);
-
-    const { configureMongooseSchema, mongooseSchemaOptions } = config;
 
     this.getListAdapterByKey = parentAdapter.getListAdapterByKey.bind(parentAdapter);
     this.mongoose = parentAdapter.mongoose;
@@ -308,6 +306,10 @@ class MongooseListAdapter extends BaseListAdapter {
 }
 
 class MongooseFieldAdapter extends BaseFieldAdapter {
+  constructor(fieldName, path, listAdapter, getListByKey, { mongooseOptions }) {
+    super(...arguments);
+    this.mongooseOptions = mongooseOptions;
+  }
   addToMongooseSchema() {
     throw new Error(`Field type [${this.fieldName}] does not implement addToMongooseSchema()`);
   }
@@ -316,7 +318,7 @@ class MongooseFieldAdapter extends BaseFieldAdapter {
     return isRequired ? validator : a => validator(a) || typeof a === 'undefined' || a === null;
   }
 
-  mergeSchemaOptions(schemaOptions, { mongooseOptions }) {
+  mergeSchemaOptions(schemaOptions) {
     if (this.isUnique) {
       // A value of anything other than `true` causes errors with Mongoose
       // constantly recreating indexes. Ie; if we just splat `unique` onto the
@@ -324,7 +326,7 @@ class MongooseFieldAdapter extends BaseFieldAdapter {
       // drop and recreate all indexes.
       schemaOptions.unique = true;
     }
-    return { ...schemaOptions, ...mongooseOptions };
+    return { ...schemaOptions, ...this.mongooseOptions };
   }
 
   // The following methods provide helpers for constructing the return values of `getQueryConditions`.
