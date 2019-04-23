@@ -9,7 +9,7 @@ class BaseKeystoneAdapter {
 
   newListAdapter(key, { listAdapterClass, ...adapterConfig }) {
     const _listAdapterClass =
-      listAdapterClass || this.config.listAdapterClass || this.constructor.defaultListAdapterClass;
+      listAdapterClass || this.listAdapterClass || this.constructor.defaultListAdapterClass;
     this.listAdapters[key] = new _listAdapterClass(key, this, adapterConfig);
     return this.listAdapters[key];
   }
