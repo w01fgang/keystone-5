@@ -251,15 +251,12 @@ class KnexListAdapter extends BaseListAdapter {
     return {
       ...result,
       ...(await resolveAllKeys(
-        arrayToObject(
-          this.fieldAdapters.filter(a => a.isRelationship && a.many),
-          'path',
-          async a =>
-            (await this._query()
-              .select(a.refListId)
-              .from(this._manyTable(a.path))
-              .where(`${this.key}_id`, result.id)
-              .returning(a.refListId)).map(x => x[a.refListId])
+        arrayToObject(this.fieldAdapters.filter(a => a.isRelationship && a.many), 'path', async a =>
+          (await this._query()
+            .select(a.refListId)
+            .from(this._manyTable(a.path))
+            .where(`${this.key}_id`, result.id)
+            .returning(a.refListId)).map(x => x[a.refListId])
         )
       )),
     };
