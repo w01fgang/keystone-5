@@ -179,39 +179,38 @@ export let plugins = [
   },
 ];
 
-export function processNodeForConnectQuery({ id, node }) {
-  debugger;
-  return { node };
+export function getConnectMutationForNode({ node }) {
+  return null;
 }
 
-export function processNodeForCreateQuery({ node }) {
-  debugger;
+export function getCreateMutationForNode({ node }) {
   // Find the 'image' child node
-  const imageNodeIndex = node.nodes.findIndex(({ type }) => type === image.type);
+  const imageNode = node.findDescendant(child => child.object === 'block' && child.type === image.type);
 
-  if (imageNodeIndex === -1) {
+  if (!imageNode) {
     console.error('No image found in a cloudinaryImage block');
-    return { node };
+    return;
   }
 
-  const { alignment } = node.data;
-  const { file } = node.nodes[imageNodeIndex].data;
-
-  const childNodes = [...node.nodes];
-  childNodes.splice(imageNodeIndex, 1, {
-    ...node.nodes[imageNodeIndex],
-    data: {},
-  });
+  const alignment = node.data.get('alignment');
+  const file = imageNode.data.get('file');
 
   return {
-    // Immutably return a modified version of the nested node
-    node: {
-      ...node,
-      nodes: childNodes,
-    },
-    query: {
-      image: file,
-      align: alignment,
-    },
+    image: file,
+    align: alignment,
   };
+}
+
+export function prepareNodeForMutation({ editor, node }) {
+  // Find the 'image' child node
+  const imageNode = node.findDescendant(child => child.object === 'block' && child.type === image.type);
+
+  if (!imageNode) {
+    console.error('No image found in a cloudinaryImage block');
+    return;
+  }
+
+  // zero out the data field to ensure we don't accidentally store the `file` as
+  // a JSON blob
+  editor.setNodeByKey(imageNode.key, { data: {} });
 }

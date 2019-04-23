@@ -6,7 +6,7 @@ import memoizeOne from 'memoize-one';
 import isPromise from 'p-is-promise';
 import { omitBy } from '@keystone-alpha/utils';
 import TextController from '../../Text/views/Controller';
-import { serialiseSlateDocument } from './serialiser';
+import { serialiseSlateValue } from './serialiser';
 
 const flattenBlocks = inputBlocks =>
   inputBlocks.reduce((outputBlocks, block) => {
@@ -97,17 +97,35 @@ export default class ContentController extends TextController {
 
     const blocks = await this.getBlocksNoZalgo();
 
-    const serialisedDocument = serialiseSlateDocument(
-      data[path].document,
-      omitBy(blocks, type => !blocks[type].processNodeForConnectQuery || !blocks[type].processNodeForCreateQuery),
-    );
+    const editor = data[path];
 
-    debugger;
+    // On first render, the server will send a stringified JSON.
+    // On subsequent calls, the value we store will be the Slate editor
+    // instance.
+    if (typeof editor === 'string') {
+      // JSON stringiried value object, possibly sent by the server
+      return JSON.parse(editor);
+    } else if () {
+      return value.document.
+    }
 
-    // TODO: Make this a JSON type in GraphQL so we don't have to stringify it.
-    serialisedDocument.document = JSON.stringify(serialisedDocument.document);
+    const isReadOnly = editor.readOnly;
 
-    debugger;
+    try {
+      // Force into read only mode so blocks don't accidentally modify any data
+      editor.setReadOnly(true);
+
+      const serialisedDocument = serialiseSlateValue(
+        data[path].document,
+        omitBy(blocks, type => !blocks[type].getConnectMutationForNode || !blocks[type].getCreateMutationForNode || !blocks[type].prepareNodeForMutation),
+      );
+
+      // TODO: Make this a JSON type in GraphQL so we don't have to stringify it.
+      serialisedDocument.document = JSON.stringify(serialisedDocument.document);
+    } finally {
+      // Reset back to what things were before we walked the tree
+      editor.setReadOnly(isReadOnly);
+    }
 
     return serialisedDocument;
   };

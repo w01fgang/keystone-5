@@ -70,10 +70,10 @@ class ImageBlock extends Block {
     };
     // TODO: Inject the back reference into `input` once we have the `from`
     // field setup on the aux list.
-    const result = await this._inputFields[0].resolveRelationship(input, existingItem, context, undefined, mutationState);
+    const operations = await this._inputFields[0].resolveNestedOperations(input, existingItem, context, undefined, mutationState);
 
     debugger;
-    return result;
+    return operations;
   }
 }
 

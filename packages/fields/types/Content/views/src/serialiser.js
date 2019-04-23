@@ -1,6 +1,9 @@
 import { mapKeys } from '@keystone-alpha/utils';
+import diff from 'jest-diff';
+import { Range } from 'slate'
+import mergeWith from 'lodash.mergewith';
 
-import { walkSlateDocument } from './slate-walker';
+import { serializeSlateNode } from './slate-walker';
 
 const CREATE = 'create';
 const CONNECT = 'connect';
@@ -36,8 +39,8 @@ const CONNECT = 'connect';
  *   },
  * }
  */
-export function serialiseSlateDocument(document, blocks) {
-  const mutations = Object.values(blocks).reduce(
+export function serialiseSlateValue(document, blocks) {
+  const allMutations = Object.values(blocks).reduce(
     (memo, block) => ({
       ...memo,
       [block.path]: {}
@@ -45,70 +48,74 @@ export function serialiseSlateDocument(document, blocks) {
     {}
   );
 
-  const mutatedDocument = walkSlateDocument(
-    document,
-    {
-      visitBlock(node) {
-        const block = blocks[node.type];
+  let serializedDocument;
 
-        if (!block) {
+  try {
+    // Force into read only mode so blocks don't accidentally modify any data
+    editor.setReadOnly(true);
+
+    serializedDocument = serializeSlateNode(
+      editor.document,
+      {
+        serializeBlock(node) {
+          const block = blocks[node.type];
+
+          // No matching block that we're in charge of
+          if (!block) {
+            return;
+          }
+
+          const { mutations, node: serializedNode } = block.serialize({ editor, node });
+
+          if (mutations && Object.keys(mutations).length) {
+            // Ensure the mutation group exists
+            allMutations[block.path] = allMutations[block.path] || {
+              // TODO: Don't forcible disconnect & reconnect. (It works because we know
+              // the entire document, so all creations & connections exist below).
+              // Really, we should do a diff and only perform the things that have
+              // actually changed. Although, this may be quite complex.
+              disconnectAll: true,
+            };
+
+            // It's possible the serialization returned mutations but didn't
+            // handle the actual serialisation of the node itself, instead
+            // leaving it to recurse further.
+            if (serializedNode) {
+              // Ensure there's a .data._mutationPaths array
+              serializedNode.data = serializedNode.data || {};
+              serializedNode.data._mutationPaths = serializedNode.data._mutationPaths || [];
+            } else {
+              if (!node.data.has('_mutationPaths')) {
+                node.data.set('_mutationPaths', []);
+              }
+            }
+
+            // Gather up all the mutations, keyed by the block's path & the
+            // "action" returned by the serialize call.
+            Object.entries(mutations, ([action, mutation]) => {
+              allMutations[block.path][action] = allMutations[block.path][action] || [];
+              const insertedBefore = allMutations[block.path][action].push(mutation);
+              const mutationPath = `${block.path}.${action}[${insertedBefore - 1}]`;
+              if (serializedNode) {
+                serializedNode.data._mutationPaths.push(mutationPath);
+              } else {
+                node.data.get('_mutationPaths').push(mutationPath);
+              }
+            });
+          }
+
           return node;
-        }
-
-        let processedNode;
-        let action;
-
-        if (node.data._joinId) {
-          // An existing connection
-          action = CONNECT;
-          processedNode = block.processNodeForConnectQuery({ id: node.data._joinId, node });
-        } else {
-          // Create a new related complex data type
-          action = CREATE;
-          processedNode = block.processNodeForCreateQuery({ node });
-        }
-
-        if (!processedNode.query) {
-          return {
-            node: processedNode.node,
-            isFinal: true,
-          };
-        }
-
-        mutations[block.path][action] = mutations[block.path][action] || [];
-        mutations[block.path][action].push(processedNode.query);
-
-        const insertedAt = mutations[block.path][action].length - 1;
-
-        debugger;
-
-        return {
-          node: {
-            ...processedNode.node,
-            data: {
-              ...processedNode.node.data,
-              _mutationPath: `${block.path}.${action}[${insertedAt}]`,
-            },
-          },
-          // In the future, we'll want to allow nested blocks to be handled too.
-          // For now, we just stop at the outter most block.
-          isFinal: true,
-        };
+        },
       },
-    },
-  );
+    );
+  } finally {
+    // Reset back to what things were before we walked the tree
+    editor.setReadOnly(isReadOnly);
+  }
 
   return {
-    document: mutatedDocument,
-    ...mapKeys(mutations, ({ create, connect }) => ({
-      // TODO: Don't forcible disconnect & reconnect. (It works because we know
-      // the entire document, so all creations & connections exist below).
-      // Really, we should do a diff and only perform the things that have
-      // actually changed. Although, this may be quite complex.
-      disconnectAll: true,
-      create,
-      connect,
-    })),
+    document: serializedDocument,
+    ...allMutations,
   };
 }
 
@@ -140,16 +147,16 @@ export function serialiseSlateDocument(document, blocks) {
  * ]
  */
 export function deserialiseSlateDocument({ document, ...serialisations }, blocks) {
-  return walkSlateDocument(
+  return serializeSlateNode(
     document,
     {
-      visitBlock(node) {
+      serializeBlock(node) {
         // All our blocks need a _joinId, so we can early-out for any that don't
         if (!node.data || !node.data._joinId) {
           return node;
         }
 
-        const block = blocks[node.type]
+        const block = blocks[node.type];
 
         if (!block || !Array.isArray(serialisations[block.path])) {
           return node;

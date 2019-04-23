@@ -6,6 +6,8 @@ import { walkSlateDocument } from './slate-walker';
 
 const GQL_TYPE_PREFIX = '_ContentType';
 
+const diff = require('jest-diff');
+
 const GQL_TYPE_PREFIX = '_ContentType';
 const DEFAULT_BLOCKS = [paragraph];
 
@@ -42,6 +44,9 @@ function isKnownBlock(node, blocks) {
  * }
  */
 async function processSerialised({ document, ...nestedMutations }, blocks, graphQlArgs) {
+  // TODO: Remove this once we use a JSON input type for the value
+  const inputDocument = JSON.parse(document);
+
   // Each block executes its mutations
   const resolvedMutations = await resolveAllKeys(
     mapKeys(nestedMutations, (mutations, path) => {
@@ -56,12 +61,16 @@ async function processSerialised({ document, ...nestedMutations }, blocks, graph
     })
   );
 
-  return {
+  debugger;
+
+  const result = {
     document: walkSlateDocument(
-      document,
+      inputDocument,
       {
         visitBlock(node) {
           const block = blocks.find(({ type }) => type === node.type);
+
+          debugger;
 
           if (!block) {
             if (node.data && node.data._mutationPath) {
@@ -94,6 +103,9 @@ async function processSerialised({ document, ...nestedMutations }, blocks, graph
     ),
   };
 
+  console.log(diff(inputDocument, result.document));
+
+  return result;
 }
 
 /**
