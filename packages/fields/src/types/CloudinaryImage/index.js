@@ -25,7 +25,7 @@ export default {
   blocks: {
     image: {
       type: 'cloudinaryImage',
-      viewPath: path.join(__dirname, 'views/blocks/single-image'),
+      viewPath: importView('./views/blocks/single-image'),
       implementation: ImageBlock,
       dependencies: [image, caption]
     },

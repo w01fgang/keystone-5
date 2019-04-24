@@ -5,8 +5,10 @@
 import memoizeOne from 'memoize-one';
 import isPromise from 'p-is-promise';
 import { omitBy } from '@keystone-alpha/utils';
+import { Value } from 'slate';
 import TextController from '../../Text/views/Controller';
-import { serialiseSlateValue } from './serialiser';
+import { serialiseSlateValue } from '../serialiser';
+import { initialValue } from './editor/constants';
 
 const flattenBlocks = inputBlocks =>
   inputBlocks.reduce((outputBlocks, block) => {
@@ -39,6 +41,8 @@ export default class ContentController extends TextController {
     // 2. Avoid recalculating everything on each request for the Blocks.
     //    Instead, when requested multiple times, use the previously cached
     //    results.
+    // NOTE: This function is designed to work with React Suspense, so may throw
+    // a Promise the first time it is called.
     this.getBlocks = memoizeOne(() => {
       // Loads all configured blocks and their dependencies
       const blocksModules = this.adminMeta.readViews(this.views.blocks);
@@ -88,49 +92,58 @@ export default class ContentController extends TextController {
     });
   }
 
-  serialize = async data => {
+  serialize = data => {
     const { path } = this.config;
     if (!data[path] || !data[path].document) {
       // Forcibly return null if empty string
       return { document: null };
     }
 
-    const blocks = await this.getBlocksNoZalgo();
-
-    const editor = data[path];
-
-    // On first render, the server will send a stringified JSON.
-    // On subsequent calls, the value we store will be the Slate editor
-    // instance.
-    if (typeof editor === 'string') {
-      // JSON stringiried value object, possibly sent by the server
-      return JSON.parse(editor);
-    } else if () {
-      return value.document.
-    }
-
-    const isReadOnly = editor.readOnly;
-
+    let blocks;
+    // May return synchronously, or may throw with either an actual error or a
+    // loading promise. We should never see a Promise thrown as .serialize()
+    // only gets called during event handlers on the client _after_ all the
+    // React Suspense calls are fully resolved. We want the
+    // returns-synchronously case. Otherwise, we want to either rethrow any
+    // error thrown, or throw a new error indicating an unexpected Promise was
+    // thrown.
     try {
-      // Force into read only mode so blocks don't accidentally modify any data
-      editor.setReadOnly(true);
+      blocks = this.getBlocks();
+    } catch (loadingPromiseOrError) {
+      if (isPromise(loadingPromiseOrError)) {
+        // `.getBlocks()` thinks it's in React Suspense mode, which we can't
+        // handle here, so we throw a new error.
+        throw new Error('`Content#getBlocks()` threw a Promise. This may occur when calling `Content#serialize()` before blocks have had a chance to fully load.');
+      }
 
-      const serialisedDocument = serialiseSlateValue(
-        data[path].document,
-        omitBy(blocks, type => !blocks[type].getConnectMutationForNode || !blocks[type].getCreateMutationForNode || !blocks[type].prepareNodeForMutation),
-      );
-
-      // TODO: Make this a JSON type in GraphQL so we don't have to stringify it.
-      serialisedDocument.document = JSON.stringify(serialisedDocument.document);
-    } finally {
-      // Reset back to what things were before we walked the tree
-      editor.setReadOnly(isReadOnly);
+      // An actual error occured
+      throw loadingPromiseOrError;
     }
 
+    const serialisedDocument = serialiseSlateValue(
+      data[path],
+      omitBy(blocks, type => !blocks[type].serialize),
+    );
+
+    // TODO: Make this a JSON type in GraphQL so we don't have to stringify it.
+    serialisedDocument.document = JSON.stringify(serialisedDocument.document);
+
+    debugger;
     return serialisedDocument;
   };
 
-  deserialize = data => (data[this.config.path] ? data[this.config.path] : { document: {} });
+  deserialize = data => {
+    debugger;
+    let value;
+    if (data[this.config.path] && data[this.config.path].document) {
+      value = {
+        document: JSON.parse(data[this.config.path].document),
+      };
+    } else {
+      value = initialValue;
+    }
+    return Value.fromJSON(value);
+  };
 
   getQueryFragment = () => {
     return `

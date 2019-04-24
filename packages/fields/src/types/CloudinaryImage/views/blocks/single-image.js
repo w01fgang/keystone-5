@@ -1,8 +1,8 @@
 /** @jsx jsx */
 import { jsx } from '@emotion/core';
 import { useMemo } from 'react';
-import * as image from  '../../../../Content/views/src/editor/blocks/image';
-import * as caption from '../../../../Content/views/src/editor/blocks/caption';
+import * as image from  '../../../Content/views/editor/blocks/image';
+import * as caption from '../../../Content/views/editor/blocks/caption';
 import insertImages from 'slate-drop-or-paste-images';
 import imageExtensions from 'image-extensions';
 import { findNode } from 'slate-react';
@@ -179,11 +179,7 @@ export let plugins = [
   },
 ];
 
-export function getConnectMutationForNode({ node }) {
-  return null;
-}
-
-export function getCreateMutationForNode({ node }) {
+export function serialize({ node }) {
   // Find the 'image' child node
   const imageNode = node.findDescendant(child => child.object === 'block' && child.type === image.type);
 
@@ -191,26 +187,27 @@ export function getCreateMutationForNode({ node }) {
     console.error('No image found in a cloudinaryImage block');
     return;
   }
+
+  debugger;
 
   const alignment = node.data.get('alignment');
   const file = imageNode.data.get('file');
 
-  return {
-    image: file,
-    align: alignment,
-  };
-}
-
-export function prepareNodeForMutation({ editor, node }) {
-  // Find the 'image' child node
-  const imageNode = node.findDescendant(child => child.object === 'block' && child.type === image.type);
-
-  if (!imageNode) {
-    console.error('No image found in a cloudinaryImage block');
-    return;
-  }
-
   // zero out the data field to ensure we don't accidentally store the `file` as
   // a JSON blob
-  editor.setNodeByKey(imageNode.key, { data: {} });
+  const newNode = node.setNode(node.getPath(imageNode.key), { data: {} });
+
+  return {
+    mutations: {
+      create: {
+        image: file,
+      },
+    },
+    node: {
+      ...newNode.toJSON(),
+      data: {
+        align: alignment,
+      },
+    }
+  };
 }

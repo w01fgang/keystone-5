@@ -2,13 +2,10 @@ import getByPath from 'lodash.get';
 import { MongoTextInterface, KnexTextInterface, Text } from '../Text/Implementation';
 import { flatMap, unique, resolveAllKeys, mapKeys } from '@keystone-alpha/utils';
 import paragraph from './blocks/paragraph';
-import { walkSlateDocument } from './slate-walker';
+import { walkSlateNode } from './slate-walker';
 
 const GQL_TYPE_PREFIX = '_ContentType';
 
-const diff = require('jest-diff');
-
-const GQL_TYPE_PREFIX = '_ContentType';
 const DEFAULT_BLOCKS = [paragraph];
 
 function flattenBlockViews(block) {
@@ -16,10 +13,6 @@ function flattenBlockViews(block) {
     block.viewPath,
     ...(block.dependencies ? flatMap(block.dependencies, flattenBlockViews) : []),
   ];
-}
-
-function isKnownBlock(node, blocks) {
-  return true; // TODO;
 }
 
 /**
@@ -64,7 +57,7 @@ async function processSerialised({ document, ...nestedMutations }, blocks, graph
   debugger;
 
   const result = {
-    document: walkSlateDocument(
+    document: walkSlateNode(
       inputDocument,
       {
         visitBlock(node) {
@@ -81,29 +74,36 @@ async function processSerialised({ document, ...nestedMutations }, blocks, graph
             return node;
           }
 
-          const _joinId = getByPath(resolvedMutations, node.data._mutationPath, {}).id;
+          const _joinIds = node.data._mutationPaths.map(mutationPath => {
+            const joinId = getByPath(resolvedMutations, mutationPath);
+            if (!joinId) {
+              throw new Error(`Slate document refers to unknown mutation '${mutationPath}'.`);
+            }
+            return joinId;
+          });
 
-          if (!_joinId) {
-            throw new Error(`Slate document refers to unknown mutation '${node.data._mutationPath}'.`);
-          }
 
           debugger;
 
+          // NOTE: We don't recurse on the children; we only process the outer
+          // most block, any child blocks are left as-is.
           return {
-            node: {
-              ...node,
-              data: { _joinId },
-            },
-            // We only process the outer most block, any child blocks are left
-            // as-is.
-            isFinal: true,
+            ...node,
+            data: { _joinIds },
           };
+        },
+
+        defaultVisitor(node, visitNode) {
+          if (node.nodes) {
+            // Recurse into the child nodes array
+            node.nodes = node.nodes.map(childNode => visitNode(childNode));
+          }
+
+          return node;
         },
       },
     ),
   };
-
-  console.log(diff(inputDocument, result.document));
 
   return result;
 }
@@ -319,7 +319,8 @@ export class Content extends Text {
     debugger;
     const { document } = await processSerialised(resolvedData[this.path], this.complexBlocks, args);
     debugger;
-    return document;
+    // TODO: FIXME: Use a JSON type
+    return JSON.stringify(document);
   }
 }
 

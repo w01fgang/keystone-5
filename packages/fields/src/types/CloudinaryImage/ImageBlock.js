@@ -1,5 +1,10 @@
-const pluralize = require('pluralize');
-const { Block } = require('../../Block');
+import pluralize from 'pluralize';
+import { Block } from '../../Block';
+
+const requireDefault = path => {
+  const mod = require(path);
+  return mod.default ? mod.default : mod;
+};
 
 class ImageBlock extends Block {
   constructor({ adapter }, { type, fromList, createAuxList, getListByKey, listConfig }) {
@@ -17,12 +22,12 @@ class ImageBlock extends Block {
       auxList = createAuxList(auxListKey, {
         fields: {
           // We perform the requires here to avoid circular dependencies
-          image: { type: require('./'), isRequired: true, adapter },
-          align: { type: require('../Select'), defaultValue: 'center', options: ['left', 'center', 'right'] },
+          image: { type: requireDefault('./'), isRequired: true, adapter },
+          align: { type: requireDefault('../Select'), defaultValue: 'center', options: ['left', 'center', 'right'] },
           // TODO: Inject the back reference to the item & field which created
           // this entry in the aux list
-          //from: { type: require('../Relationship'), isRequired: true, ref: fromList },
-          //field: { type: require('../Text'), isRequired: true },
+          //from: { type: requireDefault('../Relationship'), isRequired: true, ref: fromList },
+          //field: { type: requireDefault('../Text'), isRequired: true },
         },
       });
     }
@@ -30,7 +35,7 @@ class ImageBlock extends Block {
     this.auxList = auxList;
 
     // Require here to avoid circular dependencies
-    const Relationship = require('../Relationship').implementation;
+    const Relationship = requireDefault('../Relationship').implementation;
 
     // When content blocks are specified that have complex KS5 datatypes, the
     // client needs to send them along as graphQL inputs separate to the
