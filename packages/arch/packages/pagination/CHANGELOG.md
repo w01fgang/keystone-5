@@ -1,5 +1,18 @@
 # @arch-ui/pagination
 
+## 0.0.10
+
+### Patch Changes
+
+- [`266544ef`](https://github.com/keystonejs/keystone/commit/266544ef38b38a73644787313d305f6b4927084b) [#1870](https://github.com/keystonejs/keystone/pull/1870) Thanks [@mitchellhamilton](https://github.com/mitchellhamilton)! - Upgrade flow & fix flow errors and (probably) bugs
+
+* [`8226eb47`](https://github.com/keystonejs/keystone/commit/8226eb4709ea8ad5773c900eaaa96068d3cb6bad) [#1819](https://github.com/keystonejs/keystone/pull/1819) Thanks [@w01fgang](https://github.com/w01fgang)! - Upgrade @emotion/core & @emotion/styled
+
+* Updated dependencies [[`266544ef`](https://github.com/keystonejs/keystone/commit/266544ef38b38a73644787313d305f6b4927084b), [`8226eb47`](https://github.com/keystonejs/keystone/commit/8226eb4709ea8ad5773c900eaaa96068d3cb6bad)]:
+  - @arch-ui/button@0.0.10
+  - @arch-ui/layout@0.2.5
+  - @arch-ui/loading@0.0.9
+
 ## 0.0.9
 
 ### Patch Changes

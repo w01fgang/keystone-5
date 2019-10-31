@@ -1,5 +1,11 @@
 # create-keystone-app
 
+## 1.3.2
+
+### Patch Changes
+
+- [`d9d15958`](https://github.com/keystonejs/keystone/commit/d9d15958f3f632e6c95fdc471b94d6fbc5f0f080) [#1881](https://github.com/keystonejs/keystone/pull/1881) Thanks [@timleslie](https://github.com/timleslie)! - Fix typo
+
 ## 1.3.1
 
 ### Patch Changes

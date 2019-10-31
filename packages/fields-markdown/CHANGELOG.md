@@ -1,5 +1,19 @@
 # @keystonejs/fields-markdown
 
+## 5.0.1
+
+### Patch Changes
+
+- [`8226eb47`](https://github.com/keystonejs/keystone/commit/8226eb4709ea8ad5773c900eaaa96068d3cb6bad) [#1819](https://github.com/keystonejs/keystone/pull/1819) Thanks [@w01fgang](https://github.com/w01fgang)! - Upgrade @emotion/core & @emotion/styled
+
+- Updated dependencies [[`8735393e`](https://github.com/keystonejs/keystone/commit/8735393ec7b01dd0491700244e915b4b47c1cc53), [`266544ef`](https://github.com/keystonejs/keystone/commit/266544ef38b38a73644787313d305f6b4927084b), [`8226eb47`](https://github.com/keystonejs/keystone/commit/8226eb4709ea8ad5773c900eaaa96068d3cb6bad), [`d9d15958`](https://github.com/keystonejs/keystone/commit/d9d15958f3f632e6c95fdc471b94d6fbc5f0f080), [`5595e4c4`](https://github.com/keystonejs/keystone/commit/5595e4c45c618fa7e13a3d91e3ea3892b4f10475)]:
+  - @keystonejs/build-field-types@5.0.1
+  - @arch-ui/typography@0.0.9
+  - @keystonejs/fields@5.1.0
+  - @arch-ui/fields@2.0.2
+  - @arch-ui/input@0.1.1
+  - @arch-ui/tooltip@0.1.3
+
 ## 5.0.0
 
 ### Major Changes

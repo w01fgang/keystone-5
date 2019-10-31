@@ -1,5 +1,15 @@
 # @arch-ui/filters
 
+## 0.0.12
+
+### Patch Changes
+
+- [`8226eb47`](https://github.com/keystonejs/keystone/commit/8226eb4709ea8ad5773c900eaaa96068d3cb6bad) [#1819](https://github.com/keystonejs/keystone/pull/1819) Thanks [@w01fgang](https://github.com/w01fgang)! - Upgrade @emotion/core & @emotion/styled
+
+- Updated dependencies [[`266544ef`](https://github.com/keystonejs/keystone/commit/266544ef38b38a73644787313d305f6b4927084b), [`8226eb47`](https://github.com/keystonejs/keystone/commit/8226eb4709ea8ad5773c900eaaa96068d3cb6bad)]:
+  - @arch-ui/controls@0.0.11
+  - @arch-ui/layout@0.2.5
+
 ## 0.0.11
 
 - Updated dependencies [7689753c](https://github.com/keystonejs/keystone-5/commit/7689753c):

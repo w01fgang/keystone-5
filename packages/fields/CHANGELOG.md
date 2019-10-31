@@ -1,5 +1,38 @@
 # @keystonejs/fields
 
+## 5.1.0
+
+### Minor Changes
+
+- [`d9d15958`](https://github.com/keystonejs/keystone/commit/d9d15958f3f632e6c95fdc471b94d6fbc5f0f080) [#1881](https://github.com/keystonejs/keystone/pull/1881) Thanks [@timleslie](https://github.com/timleslie)! - Added a default getFilterTypes method to FieldController
+
+### Patch Changes
+
+- [`266544ef`](https://github.com/keystonejs/keystone/commit/266544ef38b38a73644787313d305f6b4927084b) [#1870](https://github.com/keystonejs/keystone/pull/1870) Thanks [@mitchellhamilton](https://github.com/mitchellhamilton)! - Upgrade flow & fix flow errors and (probably) bugs
+
+* [`8226eb47`](https://github.com/keystonejs/keystone/commit/8226eb4709ea8ad5773c900eaaa96068d3cb6bad) [#1819](https://github.com/keystonejs/keystone/pull/1819) Thanks [@w01fgang](https://github.com/w01fgang)! - Upgrade @emotion/core & @emotion/styled
+
+- [`5595e4c4`](https://github.com/keystonejs/keystone/commit/5595e4c45c618fa7e13a3d91e3ea3892b4f10475) [#1808](https://github.com/keystonejs/keystone/pull/1808) Thanks [@gautamsi](https://github.com/gautamsi)! - upgrade `react-apollo` and replace use of `react-apollo-hooks` with `react-apollo`. `react-apollo` has similar hooks api to `react-apollo-hooks`
+
+- Updated dependencies [[`8735393e`](https://github.com/keystonejs/keystone/commit/8735393ec7b01dd0491700244e915b4b47c1cc53), [`266544ef`](https://github.com/keystonejs/keystone/commit/266544ef38b38a73644787313d305f6b4927084b), [`8226eb47`](https://github.com/keystonejs/keystone/commit/8226eb4709ea8ad5773c900eaaa96068d3cb6bad)]:
+  - @keystonejs/build-field-types@5.0.1
+  - @arch-ui/button@0.0.10
+  - @arch-ui/controls@0.0.11
+  - @arch-ui/day-picker@0.0.14
+  - @arch-ui/drawer@0.0.11
+  - @arch-ui/layout@0.2.5
+  - @arch-ui/typography@0.0.9
+  - @arch-ui/alert@0.0.8
+  - @arch-ui/fields@2.0.2
+  - @arch-ui/filters@0.0.12
+  - @arch-ui/input@0.1.1
+  - @arch-ui/loading@0.0.9
+  - @arch-ui/lozenge@0.0.8
+  - @arch-ui/options@0.0.10
+  - @arch-ui/popout@0.0.9
+  - @arch-ui/tooltip@0.1.3
+  - @keystonejs/field-content@5.0.1
+
 ## 5.0.2
 
 ### Patch Changes
